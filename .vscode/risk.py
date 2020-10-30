@@ -85,12 +85,44 @@ for i in range(0,(max(max(continentList))+1)):
 
 troopList = []
 for i in range(0,(max(max(continentList))+1)):
-    n = random.randint(0,5)
+    n = random.randint(3,5)
     troopList.append(n)
 #print(troopList)
 
 createMap(continentList,borderList,ownerList,troopList)
 
-attackerDiceNo = 2
-defenderDiceNo = 2
-print(rollDice(attackerDiceNo,defenderDiceNo))
+#attackerDiceNo = 2
+#defenderDiceNo = 2
+#attackerLoss, defenderLoss = rollDice(attackerDiceNo,defenderDiceNo)
+
+#print(attackerLoss,defenderLoss)
+
+def battle(ownerList,troopList):
+    attackerCountry = 0
+    defenderCountry = 1
+
+    attackerDiceNo = troopList[attackerCountry]
+
+    if troopList[attackerCountry]>3:
+        attackerDiceNo = 3
+    else:
+        attackerDiceNo = troopList[attackerCountry]-1
+
+    if troopList[defenderCountry]>1:
+        defenderDiceNo = 2
+    else:
+        defenderDiceNo = 1
+
+    attackerLoss, defenderLoss = rollDice(attackerDiceNo,defenderDiceNo)
+
+    troopList[attackerCountry] = troopList[attackerCountry]+attackerLoss
+    troopList[defenderCountry] = troopList[defenderCountry]+defenderLoss
+
+    if troopList[defenderCountry]>=0:
+        ownerList[defenderCountry]=attackerCountry
+    
+    return ownerList, troopList
+input("Press Enter to continue...")
+ownerList, troopList = battle(ownerList, troopList)
+
+createMap(continentList, borderList, ownerList, troopList)

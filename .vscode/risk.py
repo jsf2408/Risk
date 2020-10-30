@@ -94,4 +94,3 @@ createMap(continentList,borderList,ownerList,troopList)
 attackerDiceNo = 2
 defenderDiceNo = 2
 print(rollDice(attackerDiceNo,defenderDiceNo))
-#test2

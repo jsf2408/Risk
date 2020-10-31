@@ -20,12 +20,13 @@ def rollDice(attackerDiceNo=3,defenderDiceNo=2):
 
     attackerLoss = 0
     defenderLoss = 0
-    for i in range(len(defenderDice)):
+    for i in range(min([len(attackerDice),len(defenderDice)])):
         if defenderDice[i] >= attackerDice[i]:
             attackerLoss = attackerLoss - 1
         else:
             defenderLoss = defenderLoss - 1
-    return attackerLoss, defenderLoss
+    print(attackerLoss,defenderLoss)
+    return attackerLoss, defenderLoss, attackerDiceNo
 
 def createMap(continentList,borderList,ownerList,troopList):
     from graphviz import Graph
@@ -85,7 +86,7 @@ for i in range(0,(max(max(continentList))+1)):
 
 troopList = []
 for i in range(0,(max(max(continentList))+1)):
-    n = random.randint(3,5)
+    n = random.randint(1,5)
     troopList.append(n)
 #print(troopList)
 
@@ -97,32 +98,36 @@ createMap(continentList,borderList,ownerList,troopList)
 
 #print(attackerLoss,defenderLoss)
 
-def battle(ownerList,troopList):
-    attackerCountry = 0
-    defenderCountry = 1
+attackerCountry = 0
+defenderCountry = 1
+#def reinforce(baseCountry,reinforceCountry,minTroop=1,ownerList,troopList):
+    #some stuff
 
-    attackerDiceNo = troopList[attackerCountry]
+def battle(attackerCountry,defenderCountry,ownerList,troopList,style='blitz'):
 
-    if troopList[attackerCountry]>3:
-        attackerDiceNo = 3
-    else:
-        attackerDiceNo = troopList[attackerCountry]-1
+    print(attackerCountry, defenderCountry)
 
-    if troopList[defenderCountry]>1:
-        defenderDiceNo = 2
-    else:
-        defenderDiceNo = 1
+    while troopList[attackerCountry]>1:
+        if troopList[attackerCountry]>3:
+            attackerDiceNo = 3
+        else:
+            attackerDiceNo = troopList[attackerCountry]-1
 
-    attackerLoss, defenderLoss = rollDice(attackerDiceNo,defenderDiceNo)
+        if troopList[defenderCountry]>1:
+            defenderDiceNo = 2
+        else:
+            defenderDiceNo = 1
 
-    troopList[attackerCountry] = troopList[attackerCountry]+attackerLoss
-    troopList[defenderCountry] = troopList[defenderCountry]+defenderLoss
+        attackerLoss, defenderLoss, attackerDiceNo = rollDice(attackerDiceNo,defenderDiceNo)
 
-    if troopList[defenderCountry]>=0:
-        ownerList[defenderCountry]=attackerCountry
-    
+        troopList[attackerCountry] = troopList[attackerCountry]+attackerLoss
+        troopList[defenderCountry] = troopList[defenderCountry]+defenderLoss
+
+        if troopList[defenderCountry]<=0:
+            ownerList[defenderCountry]=ownerList[attackerCountry]
+            break
     return ownerList, troopList
 input("Press Enter to continue...")
-ownerList, troopList = battle(ownerList, troopList)
+ownerList, troopList = battle(attackerCountry,defenderCountry,ownerList, troopList)
 
 createMap(continentList, borderList, ownerList, troopList)

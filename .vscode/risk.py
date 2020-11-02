@@ -100,8 +100,10 @@ createMap(continentList,borderList,ownerList,troopList)
 
 attackerCountry = 0
 defenderCountry = 1
-#def reinforce(baseCountry,reinforceCountry,minTroop=1,ownerList,troopList):
-    #some stuff
+def reinforce(baseCountry,reinforceCountry,troops=1,ownerList,troopList):
+    troopList[baseCountry] = troopList[baseCountry]-troops
+    troopList[reinforceCountry] = troopList[reinforceCountry]+troops
+
 
 def battle(attackerCountry,defenderCountry,ownerList,troopList,style='blitz'):
 
@@ -128,6 +130,6 @@ def battle(attackerCountry,defenderCountry,ownerList,troopList,style='blitz'):
             break
     return ownerList, troopList
 input("Press Enter to continue...")
-ownerList, troopList = battle(attackerCountry,defenderCountry,ownerList, troopList)
+ownerList, troopList = battle(attackerCountry,defenderCountry,ownerList,troopList)
 
 createMap(continentList, borderList, ownerList, troopList)

@@ -78,7 +78,7 @@ for i in range(len(borderList)):
 
 #np.savetxt("borderMap",borderMap,fmt ='%.0f')
 
-ownerList = [-1]*len(borderList)
+ownerList = [None]*len(borderList)
 troopList = [0]*len(borderList)
 
 #print(ownerList)
@@ -87,22 +87,24 @@ troopList = [0]*len(borderList)
 
 #random start map
 players = 6-1
+troops = [25]*players
 turn = 0
 i = 0
-while -1 in ownerList:
-    test = ownerList.index(-1)
-    selection = random.choice([ownerList.index(-1)])
-    print(test)
+while None in ownerList:
+    #test = ownerList.index(-1)
+    remainingCountries = [j for j, x in enumerate(ownerList) if x == None]
+    selection = random.choice(remainingCountries)
     ownerList[selection] = turn
+    troopList[selection] = 1
     turn = turn+1
     if turn > players:
         turn = 0
     i = i+1
 
-troops = 25
 for i in range(players):
-    for j in range(troops):
-        selection = random.choice([ownerList.index(i)])
+    for j in range(troops[i]):
+        remainingCountries = [j for j, x in enumerate(ownerList) if x == i]
+        selection = random.choice(remainingCountries)
         troopList[selection] = troopList[selection] + 1
     
 
@@ -119,8 +121,8 @@ createMap(continentList,borderList,ownerList,troopList)
 
 #print(attackerLoss,defenderLoss)
 
-#attackerCountry = 0
-#defenderCountry = 1
+attackerCountry = 0
+defenderCountry = 1
 def reinforce(ownerList,troopList,reinforceCountry,baseCountry=-1,troops=1):
     if not baseCountry == -1:
         troopList[baseCountry] = troopList[baseCountry]-troops
@@ -128,7 +130,7 @@ def reinforce(ownerList,troopList,reinforceCountry,baseCountry=-1,troops=1):
     return ownerList, troopList
 
 
-def battle(attackerCountry,defenderCountry,ownerList,troopList,style='blitz'):
+def battle(attackerCountry,defenderCountry,ownerList,troopList):
 
     print(attackerCountry, defenderCountry)
 
@@ -152,7 +154,7 @@ def battle(attackerCountry,defenderCountry,ownerList,troopList,style='blitz'):
             ownerList[defenderCountry]=ownerList[attackerCountry]
             break
     return ownerList, troopList
-#input("Press Enter to continue...")
-#ownerList, troopList = battle(attackerCountry,defenderCountry,ownerList,troopList)
+input("Press Enter to continue...")
+ownerList, troopList = battle(attackerCountry,defenderCountry,ownerList,troopList)
 
-#createMap(continentList, borderList, ownerList, troopList)
+createMap(continentList, borderList, ownerList, troopList)

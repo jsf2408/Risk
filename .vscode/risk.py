@@ -62,7 +62,7 @@ continentList = [[0,1,2,3,4,5,6,7,8], #north america
                 [20,21,22,23,24,25], #africa
                 [26,27,28,29,30,31,32,33,34,35,36,37], #asia
                 [38,39,40,41]] #oceania
-borderList = [[1,2,31],[0,2,3,4],[0,1,4,5],[1,2,4,6],[1,2,3,5,6,7],[2,4,7,8],[3,4,7],[4,5,6,8],[5,7,9], #0-8 north america
+borderList = [[1,2,31],[0,2,3,4],[0,1,3,4,5],[1,2,4,6,13],[1,2,3,5,6,7],[2,4,7,8],[3,4,7],[4,5,6,8],[5,7,9], #0-8 north america
             [8,10,11],[9,11,12,20],[9,10,12],[10,11], #9-12 south america
             [3,14,15],[13,15,16,18],[13,14,16,17],[14,15,17,18,19],[15,16,19,20],[14,16,19,26,27,28],[16,17,18,20,21,28], #13-19 europe
             [10,17,19,21,22,23],[19,20,22,28],[20,21,23,24,25,28],[20,22,24],[22,23,25],[22,24], #20-25 africa
@@ -123,18 +123,31 @@ createMap(continentList,borderList,ownerList,troopList)
 
 attackerCountry = 0
 defenderCountry = 1
-def reinforce(ownerList,troopList,reinforceCountry,baseCountry=-1,troops=1):
+def reinforce(ownerList,troopList,reinforceCountry,baseCountry=-1,troops=0):
     if not baseCountry == -1:
         troopList[baseCountry] = troopList[baseCountry]-troops
     troopList[reinforceCountry] = troopList[reinforceCountry]+troops
     return ownerList, troopList
 
-
-def battle(attackerCountry,defenderCountry,ownerList,troopList):
-
+def battle(attackerCountry,defenderCountry,ownerList,troopList,style='blitz'):
     print(attackerCountry, defenderCountry)
+    if style == 'blitz':
+        while troopList[attackerCountry]>1 and troopList[defenderCountry]>0:
+            if troopList[attackerCountry]>3:
+                attackerDiceNo = 3
+            else:
+                attackerDiceNo = troopList[attackerCountry]-1
 
-    while troopList[attackerCountry]>1:
+            if troopList[defenderCountry]>1:
+                defenderDiceNo = 2
+            else:
+                defenderDiceNo = 1
+
+            attackerLoss, defenderLoss, attackerDiceNo = rollDice(attackerDiceNo,defenderDiceNo)
+
+            troopList[attackerCountry] = troopList[attackerCountry]+attackerLoss
+            troopList[defenderCountry] = troopList[defenderCountry]+defenderLoss
+    else:
         if troopList[attackerCountry]>3:
             attackerDiceNo = 3
         else:
@@ -149,12 +162,81 @@ def battle(attackerCountry,defenderCountry,ownerList,troopList):
 
         troopList[attackerCountry] = troopList[attackerCountry]+attackerLoss
         troopList[defenderCountry] = troopList[defenderCountry]+defenderLoss
-
-        if troopList[defenderCountry]<=0:
-            ownerList[defenderCountry]=ownerList[attackerCountry]
-            break
+    if troopList[defenderCountry]<=0:
+        print("Victory!")
+        ownerList[defenderCountry]=ownerList[attackerCountry]
+        ownerList,troopList=reinforce(ownerList,troopList,defenderCountry,attackerCountry,attackerDiceNo)
     return ownerList, troopList
-input("Press Enter to continue...")
-ownerList, troopList = battle(attackerCountry,defenderCountry,ownerList,troopList)
+#input("Press Enter to continue...")
+#ownerList, troopList = battle(attackerCountry,defenderCountry,ownerList,troopList)
 
-createMap(continentList, borderList, ownerList, troopList)
+#createMap(continentList, borderList, ownerList, troopList)
+
+def draftPhase(ownerList, troopList, playerTurn = 0):
+    print("Starting draft phase...")
+    reinforcements = 5 #needs to be calculated
+    while reinforcements > 0:
+        print("You have "+str(reinforcements)+" remaining.")
+        while True:
+            reinforceCountry = input("Which country would you like to reinforce? ")
+            try:
+                reinforceCountry = int(reinforceCountry)
+            except:
+                continue
+            if playerTurn == ownerList[reinforceCountry]: break
+        
+        while True:
+            reinforceUnit = input("How many units would you like to send? ")
+            try:
+                reinforceUnit = int(reinforceUnit)
+            except:
+                continue
+            if reinforceUnit <= reinforcements and reinforceUnit > 0: break
+        
+        ownerList, troopList = reinforce(ownerList, troopList, reinforceCountry, troops=reinforceUnit)
+        reinforcements = reinforcements-reinforceUnit
+        createMap(continentList, borderList, ownerList, troopList)
+    print("Ending draft phase...")
+    return ownerList, troopList
+
+def attackPhase(ownerList, troopList, borderlist, playerTurn = 0):
+    print("Starting attack phase...")
+    attackOrder = None
+    attackEnd = None
+
+    while attackEnd != "y":
+        attackOrder = input("Would you like to attack a country? ")
+        if not (attackOrder == "n" or attackOrder == "y"): continue
+        if attackOrder == "n":
+            while True:
+                attackEnd = input("Are you sure? ")
+                if (attackEnd == "n" or attackEnd == "y"): break
+            continue
+        while True:
+            attackerCountry = input("Which country would you like to attack from? ")
+            try:
+                attackerCountry = int(attackerCountry)
+            except:
+                continue
+            if playerTurn == ownerList[attackerCountry] and troopList[attackerCountry]>1: break
+        while True:
+            defenderCountry = int(input("Which country would you like to attack? "))
+            try:
+                defenderCountry = int(defenderCountry)
+            except:
+                continue
+            if defenderCountry in borderList[attackerCountry] and ownerList[defenderCountry]!=ownerList[attackerCountry]: break
+        while True:
+            attackConfirmation = input("Confirm order?: "+str(attackerCountry)+"->"+str(defenderCountry)+" ")
+            if (attackConfirmation == "n" or attackConfirmation == "y"): break
+        if attackConfirmation == "y":
+            print("time for battle")
+        continue
+
+    print("Ending attack phase...")
+
+#def fortifyPhase():
+
+ownerList, troopList = draftPhase(ownerList, troopList)
+attackPhase(ownerList, troopList, borderList)
+    

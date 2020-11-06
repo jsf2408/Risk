@@ -260,7 +260,6 @@ def fortifyPhase(ownerList,troopList,borderList, playerTurn = 0):
                 reinforceCountry = int(reinforceCountry)
             except:
                 continue
-            print(type(ownerList[reinforceCountry]),type(playerTurn))
             if ownerList[reinforceCountry] == playerTurn: break
         while True:
             reinforceTroops = int(input("How many troops would you like to move? "))
@@ -276,8 +275,10 @@ def fortifyPhase(ownerList,troopList,borderList, playerTurn = 0):
             ownerList, troopList = reinforce(ownerList,troopList,reinforceCountry,baseCountry,reinforceTroops)
         except:
             continue
+    createMap(continentList,borderList,ownerList,troopList)
     print("Ending fortify phase...")
     return ownerList, troopList
+
 ownerList, troopList = draftPhase(ownerList, troopList)
 ownerList, troopList = attackPhase(ownerList, troopList, borderList)
 ownerList, troopList = fortifyPhase(ownerList, troopList, borderList)    

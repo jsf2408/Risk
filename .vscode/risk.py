@@ -63,7 +63,7 @@ continentList = [[0,1,2,3,4,5,6,7,8], #north america
                 [26,27,28,29,30,31,32,33,34,35,36,37], #asia
                 [38,39,40,41]] #oceania
 borderList = [[1,2,31],[0,2,3,4],[0,1,3,4,5],[1,2,4,6,13],[1,2,3,5,6,7],[2,4,7,8],[3,4,7],[4,5,6,8],[5,7,9], #0-8 north america
-            [8,10,11],[9,11,12,20],[9,10,12],[10,11], #9-12 south america
+            [8,10,11],[9,11,12,20],[9,10,11,12],[10,11], #9-12 south america
             [3,14,15],[13,15,16,18],[13,14,16,17],[14,15,17,18,19],[15,16,19,20],[14,16,19,26,27,28],[16,17,18,20,21,28], #13-19 europe
             [10,17,19,21,22,23],[19,20,22,28],[20,21,23,24,25,28],[20,22,24],[22,23,25],[22,24], #20-25 africa
             [18,27,29,35],[18,26,28,35,36],[18,19,21,22,27,36],[26,30,32,34,35],[29,31,32],[0,30,32,33,34],[29,30,31,34],[31,34],[29,31,32,33,35],[26,27,29,34,36,37],[27,28,35,37],[35,36,38], #26-37 asia
@@ -232,11 +232,52 @@ def attackPhase(ownerList, troopList, borderlist, playerTurn = 0):
         if attackConfirmation == "y":
             print("time for battle")
         continue
-
     print("Ending attack phase...")
+    return ownerList, troopList
 
-#def fortifyPhase():
-
+def fortifyPhase(ownerList,troopList,borderList, playerTurn = 0):
+    print("Starting fortify phase...")
+    fortifyEnd = None
+    while fortifyEnd != "y":
+        while True:
+            fortifyOrder = input("Would you like to fortify? ")
+            if (fortifyOrder == "n" or fortifyOrder == "y"): break
+        if fortifyOrder == "n":
+            while True:
+                fortifyEnd = input("Are you sure? ")
+                if (fortifyEnd == "n" or fortifyEnd == "y"): break
+            continue
+        while True:
+            baseCountry = input("Which country would you like to fortify from? ")
+            try:
+                baseCountry = int(baseCountry)
+            except:
+                continue
+            if playerTurn == ownerList[baseCountry] and troopList[baseCountry]>1: break
+        while True:
+            reinforceCountry = int(input("Which country would you like to fortify? "))
+            try:
+                reinforceCountry = int(reinforceCountry)
+            except:
+                continue
+            print(type(ownerList[reinforceCountry]),type(playerTurn))
+            if ownerList[reinforceCountry] == playerTurn: break
+        while True:
+            reinforceTroops = int(input("How many troops would you like to move? "))
+            try:
+                reinforceTroops = int(reinforceTroops)
+            except:
+                continue
+            if reinforceTroops < troopList[baseCountry] and reinforceTroops > 0: break
+        while True:
+            fortifyEnd = input("Confirm order?: "+str(baseCountry)+"->"+str(reinforceTroops)+"->"+str(reinforceCountry)+" ")
+            if (fortifyEnd == "n" or fortifyEnd == "y"): break
+        try:
+            ownerList, troopList = reinforce(ownerList,troopList,reinforceCountry,baseCountry,reinforceTroops)
+        except:
+            continue
+    print("Ending fortify phase...")
+    return ownerList, troopList
 ownerList, troopList = draftPhase(ownerList, troopList)
-attackPhase(ownerList, troopList, borderList)
-    
+ownerList, troopList = attackPhase(ownerList, troopList, borderList)
+ownerList, troopList = fortifyPhase(ownerList, troopList, borderList)    

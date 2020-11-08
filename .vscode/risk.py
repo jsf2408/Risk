@@ -34,7 +34,7 @@ def rollDice(attackerDiceNo=3,defenderDiceNo=2):
 def createMap(continentList,borderList,ownerList,troopList):
     from graphviz import Graph
 
-    worldMap = Graph()#(graph_attr={'rankdir':'LR'})
+    worldMap = Graph(graph_attr={'rankdir':'LR'})
     for i in range(len(continentList)):
         #print(i)
         with worldMap.subgraph(name='cluster'+str(i)) as c:
@@ -59,73 +59,82 @@ def createMap(continentList,borderList,ownerList,troopList):
         worldMap.node(str(i),label='< <b>      '+str(i)+'    </b> <br/>'+str(troopList[i])+'>')
     worldMap.save()
 
-continentList = [[0,1,2,3,4,5,6,7,8], #north america
-                [9,10,11,12], #south america
-                [13,14,15,16,17,18,19], #europe
-                [20,21,22,23,24,25], #africa
-                [26,27,28,29,30,31,32,33,34,35,36,37], #asia
-                [38,39,40,41]] #oceania
-borderList = [[1,2,31],[0,2,3,4],[0,1,3,4,5],[1,2,4,6,13],[1,2,3,5,6,7],[2,4,7,8],[3,4,7],[4,5,6,8],[5,7,9], #0-8 north america
-            [8,10,11],[9,11,12,20],[9,10,11,12],[10,11], #9-12 south america
-            [3,14,15],[13,15,16,18],[13,14,16,17],[14,15,17,18,19],[15,16,19,20],[14,16,19,26,27,28],[16,17,18,20,21,28], #13-19 europe
-            [10,17,19,21,22,23],[19,20,22,28],[20,21,23,24,25,28],[20,22,24],[22,23,25],[22,24], #20-25 africa
-            [18,27,29,35],[18,26,28,35,36],[18,19,21,22,27,36],[26,30,32,34,35],[29,31,32],[0,30,32,33,34],[29,30,31,34],[31,34],[29,31,32,33,35],[26,27,29,34,36,37],[27,28,35,37],[35,36,38], #26-37 asia
-            [37,39],[38,40,41],[39,41],[39,40]] #38-41 oceania
-borderMap = np.zeros(((max(max(continentList))+1),(max(max(continentList)))+1))
-
-#print(borderMap.shape)
-
-for i in range(len(borderList)):
-    for j in borderList[i]:
-        borderMap[i,j]=1
-
-#np.savetxt("borderMap",borderMap,fmt ='%.0f')
-
-ownerList = [None]*len(borderList)
-troopList = [0]*len(borderList)
-
-#print(ownerList)
-
-#troopList = []
-
-#random start map
-players = 6-1
-troops = [25]*players
-turn = 0
-i = 0
-while None in ownerList:
-    #test = ownerList.index(-1)
-    remainingCountries = [j for j, x in enumerate(ownerList) if x == None]
-    selection = random.choice(remainingCountries)
-    ownerList[selection] = turn
-    troopList[selection] = 1
-    turn = turn+1
-    if turn > players:
-        turn = 0
-    i = i+1
-
-for i in range(players):
-    for j in range(troops[i]):
-        remainingCountries = [j for j, x in enumerate(ownerList) if x == i]
+def setupMap(ownerList,troopList,players=6):
+    players = players-1
+    troops = [25]*(players)
+    turn = 0
+    i = 0
+    while None in ownerList:
+        #test = ownerList.index(-1)
+        remainingCountries = [j for j, x in enumerate(ownerList) if x == None]
         selection = random.choice(remainingCountries)
-        troopList[selection] = troopList[selection] + 1
+        ownerList[selection] = turn
+        troopList[selection] = 1
+        turn = turn+1
+        if turn > players:
+            turn = 0
+        i = i+1
+
+    for i in range(players):
+        for j in range(troops[i]):
+            remainingCountries = [j for j, x in enumerate(ownerList) if x == i]
+            selection = random.choice(remainingCountries)
+            troopList[selection] = troopList[selection] + 1
+    createMap(continentList,borderList,ownerList,troopList)
+    return ownerList,troopList,turn
     
+def calcUnits(ownerList, continentList, playerTurn = 0):
+    countryBonus = ownerList.count(playerTurn)//3
+    if countryBonus < 3:
+        countryBonus = 3
+    
+    #calc continentBonus
+    continentOwner = continentList.copy()
+    for i in continentOwner:
+        for j in i:
+            i = ownerList[j]
 
-#for i in range(0,(max(max(continentList))+1)):
-#    n = random.randint(1,5)
-#    troopList.append(n)
-#print(troopList)
+    print(continentOwner)
 
-createMap(continentList,borderList,ownerList,troopList)
+    totalBonus = countryBonus#+continentBonus
+    return totalBonus
 
-#attackerDiceNo = 2
-#defenderDiceNo = 2
-#attackerLoss, defenderLoss = rollDice(attackerDiceNo,defenderDiceNo)
+def pathCheck(ownerList,troopList,seedCountry,targetCountry, playerTurn = 0):
+    borderCountries = []
+    borderCountries.append(seedCountry)
+    newBorders = []
+    while True:
+        for z in borderCountries:
+            for i in borderList[z]:
+                newBorders.append(i)
 
-#print(attackerLoss,defenderLoss)
+        removeCountries = []
+        for i in newBorders:
+            if ownerList[i] != playerTurn:
+                removeCountries.append(i)
 
-attackerCountry = 0
-defenderCountry = 1
+        for i in newBorders:
+            for j in borderCountries:
+                if i==j:
+                    removeCountries.append(i)
+
+        for i in removeCountries:
+            while i in newBorders: 
+                newBorders.remove(i)
+
+        newBorders = list(dict.fromkeys(newBorders))
+
+        if len(newBorders) > 0:
+            for i in newBorders:
+                borderCountries.append(i)
+        else:
+            break
+
+    if targetCountry in borderCountries:
+        return True
+    else:
+        return False
+
 def reinforce(ownerList,troopList,reinforceCountry,baseCountry=-1,troops=0):
     if not baseCountry == -1:
         troopList[baseCountry] = troopList[baseCountry]-troops
@@ -166,13 +175,16 @@ def battle(attackerCountry,defenderCountry,ownerList,troopList,style='blitz'):
         troopList[defenderCountry] = troopList[defenderCountry]+defenderLoss
     if troopList[defenderCountry]<=0:
         print("Victory!")
+        victory = True
         ownerList[defenderCountry]=ownerList[attackerCountry]
         ownerList,troopList=reinforce(ownerList,troopList,defenderCountry,attackerCountry,attackerDiceNo)
-    return ownerList, troopList
+    else:
+        victory = False
+    return ownerList, troopList, victory
 
-def draftPhase(ownerList, troopList, playerTurn = 0):
+def draftPhase(ownerList, troopList, continentList, playerTurn = 0):
     print("Starting draft phase...")
-    reinforcements = 5 #needs to be calculated
+    reinforcements = calcUnits(ownerList, continentList, playerTurn)
     while reinforcements > 0:
         print("You have "+str(reinforcements)+" remaining.")
         while True:
@@ -228,17 +240,18 @@ def attackPhase(ownerList, troopList, borderlist, playerTurn = 0):
             attackConfirmation = input("Confirm order?: "+str(attackerCountry)+"->"+str(defenderCountry)+" ")
             if (attackConfirmation == "n" or attackConfirmation == "y"): break
         if attackConfirmation == "y":
-            ownerList, troopList = battle(attackerCountry,defenderCountry,ownerList,troopList)
+            ownerList, troopList, victory = battle(attackerCountry,defenderCountry,ownerList,troopList)
             createMap(continentList,borderList,ownerList,troopList)
-            while True:
-                reinforceUnits = input("How many additional units would you like to send? ")
-                try:
-                    reinforceUnits = int(reinforceUnits)
-                except:
-                    continue
-                if reinforceUnits >= 0 and reinforceUnits < troopList[attackerCountry]: break
-            ownerList, troopList = reinforce(ownerList,troopList,defenderCountry,attackerCountry,reinforceUnits)
-            createMap(continentList,borderList,ownerList,troopList)
+            if victory:
+                while True:
+                    reinforceUnits = input("How many additional units would you like to send? ")
+                    try:
+                        reinforceUnits = int(reinforceUnits)
+                    except:
+                        continue
+                    if reinforceUnits >= 0 and reinforceUnits < troopList[attackerCountry]: break
+                ownerList, troopList = reinforce(ownerList,troopList,defenderCountry,attackerCountry,reinforceUnits)
+                createMap(continentList,borderList,ownerList,troopList)
         continue
     print("Ending attack phase...")
     return ownerList, troopList
@@ -268,7 +281,7 @@ def fortifyPhase(ownerList,troopList,borderList, playerTurn = 0):
                 reinforceCountry = int(reinforceCountry)
             except:
                 continue
-            if ownerList[reinforceCountry] == playerTurn: break
+            if ownerList[reinforceCountry] == playerTurn and pathCheck(ownerList,troopList,baseCountry,reinforceCountry): break
         while True:
             reinforceTroops = int(input("How many troops would you like to move? "))
             try:
@@ -287,6 +300,37 @@ def fortifyPhase(ownerList,troopList,borderList, playerTurn = 0):
     print("Ending fortify phase...")
     return ownerList, troopList
 
-ownerList, troopList = draftPhase(ownerList, troopList)
+
+continentList = [[0,1,2,3,4,5,6,7,8], #north america
+                [9,10,11,12], #south america
+                [13,14,15,16,17,18,19], #europe
+                [20,21,22,23,24,25], #africa
+                [26,27,28,29,30,31,32,33,34,35,36,37], #asia
+                [38,39,40,41]] #oceania
+borderList = [[1,2,31],[0,2,3,4],[0,1,3,4,5],[1,2,4,6,13],[1,2,3,5,6,7],[2,4,7,8],[3,4,7],[4,5,6,8],[5,7,9], #0-8 north america
+            [8,10,11],[9,11,12,20],[9,10,12],[10,11], #9-12 south america
+            [3,14,15],[13,15,16,18],[13,14,16,17],[14,15,17,18,19],[15,16,19,20],[14,16,19,26,27,28],[16,17,18,20,21,28], #13-19 europe
+            [10,17,19,21,22,23],[19,20,22,28],[20,21,23,24,25,28],[20,22,24],[22,23,25],[22,24], #20-25 africa
+            [18,27,29,35],[18,26,28,35,36],[18,19,21,22,27,36],[26,30,32,34,35],[29,31,32],[0,30,32,33,34],[29,30,31,34],[31,34],[29,31,32,33,35],[26,27,29,34,36,37],[27,28,35,37],[35,36,38], #26-37 asia
+            [37,39],[38,40,41],[39,41],[39,40]] #38-41 oceania
+borderMap = np.zeros(((max(max(continentList))+1),(max(max(continentList)))+1))
+
+#print(borderMap.shape)
+
+for i in range(len(borderList)):
+    for j in borderList[i]:
+        borderMap[i,j]=1
+
+#np.savetxt("borderMap",borderMap,fmt ='%.0f')
+
+ownerList = [None]*len(borderList)
+troopList = [0]*len(borderList)
+
+ownerList, troopList, turn = setupMap(ownerList, troopList)
+
+calcUnits(ownerList, continentList)
+
+ownerList, troopList = draftPhase(ownerList, troopList, continentList)
 ownerList, troopList = attackPhase(ownerList, troopList, borderList)
 ownerList, troopList = fortifyPhase(ownerList, troopList, borderList)    
+

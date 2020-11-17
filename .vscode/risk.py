@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from graphviz import Graph
 
 def rollDice(attackerDiceNo=3,defenderDiceNo=2):
     attackerDice = []
@@ -32,9 +33,7 @@ def rollDice(attackerDiceNo=3,defenderDiceNo=2):
     return attackerLoss, defenderLoss, attackerDiceNo
 
 def createMap(continentList,borderList,ownerList,troopList):
-    from graphviz import Graph
-
-    worldMap = Graph(graph_attr={'rankdir':'LR'})
+    worldMap = Graph()#graph_attr={'rankdir':'LR'})
     for i in range(len(continentList)):
         #print(i)
         with worldMap.subgraph(name='cluster'+str(i)) as c:
@@ -48,7 +47,6 @@ def createMap(continentList,borderList,ownerList,troopList):
             if str(j)+str(i) not in worldMapEdges:
                 worldMapEdges.append(str(i)+str(j))
                 worldMap.edge(str(i),str(j))
-    worldMap.save()  
 
     ownerColour = ['red','green','blue','purple','orange','yellow']
 
@@ -93,8 +91,6 @@ def calcUnits(ownerList, continentList, playerTurn = 0):
     for i in continentOwner:
         for j in i:
             i = ownerList[j]
-
-    print(continentOwner)
 
     totalBonus = countryBonus#+continentBonus
     return totalBonus
@@ -323,14 +319,21 @@ for i in range(len(borderList)):
 
 #np.savetxt("borderMap",borderMap,fmt ='%.0f')
 
+players = 6
+
 ownerList = [None]*len(borderList)
 troopList = [0]*len(borderList)
 
-ownerList, troopList, turn = setupMap(ownerList, troopList)
+ownerList, troopList, playerTurn = setupMap(ownerList, troopList)
 
-calcUnits(ownerList, continentList)
+while all(elem == ownerList[0] for elem in ownerList):
+    if playerTurn not in ownerList:
+        continue
+    ownerList, troopList = draftPhase(ownerList, troopList, continentList, playerTurn)
+    ownerList, troopList = attackPhase(ownerList, troopList, borderList, playerTurn)
+    ownerList, troopList = fortifyPhase(ownerList, troopList, borderList, playerTurn)
+    playerTurn = playerTurn+1
+    if playerTurn > players:
+        playerTurn = 0
 
-ownerList, troopList = draftPhase(ownerList, troopList, continentList)
-ownerList, troopList = attackPhase(ownerList, troopList, borderList)
-ownerList, troopList = fortifyPhase(ownerList, troopList, borderList)    
-
+print('Player ', playerTurn, 'has won!')

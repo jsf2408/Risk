@@ -1,6 +1,33 @@
 import numpy as np
 import random
 
+print("RISK")
+
+def dealCard(cardPile,cardList,playerTurn=0):
+    cardList[playerTurn].append(cardPile.pop(0))
+    return cardPile, cardList
+
+def tradeInCards(cardPile,cardList,tradeList,playerTurn=0):
+    bonusUnits = 0
+    bonusCountry = cardList[playerTurn][tradeList[0]][0]
+
+    troopValues = []
+    for i in tradeList:
+        troopValues.append(cardList[playerTurn][i][1])
+
+    print(troopValues)
+    troopValues = set(troopValues)
+    if troopValues == set(1,2,3):
+        bonusUnits = 10
+    elif troopValues == set(3,3,3): #set ignores duplicates
+        bonusUnits = 8
+    elif troopValues == set(2,2,2):
+        bonusUnits = 6
+    elif troopValues == set(1,1,1):
+        bonusUnits = 4
+        
+    return bonusUnits, cardPile, cardList
+
 def rollDice(attackerDiceNo=3,defenderDiceNo=2):
     attackerDice = []
     defenderDice = []
@@ -36,10 +63,8 @@ def createMap(continentList,borderList,ownerList,troopList):
 
     worldMap = Graph(graph_attr={'rankdir':'LR'})
     for i in range(len(continentList)):
-        #print(i)
         with worldMap.subgraph(name='cluster'+str(i)) as c:
             for j in continentList[i]:
-                #print(j)
                 c.node(str(j))
     
     worldMapEdges = []
@@ -82,7 +107,7 @@ def setupMap(ownerList,troopList,players=6):
             troopList[selection] = troopList[selection] + 1
     createMap(continentList,borderList,ownerList,troopList)
     return ownerList,troopList,turn
-    
+
 def calcUnits(ownerList, continentList, playerTurn = 0):
     countryBonus = ownerList.count(playerTurn)//3
     if countryBonus < 3:
@@ -93,8 +118,6 @@ def calcUnits(ownerList, continentList, playerTurn = 0):
     for i in continentOwner:
         for j in i:
             i = ownerList[j]
-
-    print(continentOwner)
 
     totalBonus = countryBonus#+continentBonus
     return totalBonus
@@ -186,7 +209,7 @@ def draftPhase(ownerList, troopList, continentList, playerTurn = 0):
     print("Starting draft phase...")
     reinforcements = calcUnits(ownerList, continentList, playerTurn)
     while reinforcements > 0:
-        print("You have "+str(reinforcements)+" remaining.")
+        print("You have "+str(reinforcements)+" units remaining.")
         while True:
             reinforceCountry = input("Which country would you like to reinforce? ")
             try:
@@ -213,6 +236,7 @@ def attackPhase(ownerList, troopList, borderlist, playerTurn = 0):
     print("Starting attack phase...")
     attackOrder = None
     attackEnd = None
+    battleWon = False
 
     while attackEnd != "y":
         attackOrder = input("Would you like to attack a country? ")
@@ -243,6 +267,7 @@ def attackPhase(ownerList, troopList, borderlist, playerTurn = 0):
             ownerList, troopList, victory = battle(attackerCountry,defenderCountry,ownerList,troopList)
             createMap(continentList,borderList,ownerList,troopList)
             if victory:
+                battleWon = True
                 while True:
                     reinforceUnits = input("How many additional units would you like to send? ")
                     try:
@@ -326,7 +351,28 @@ for i in range(len(borderList)):
 ownerList = [None]*len(borderList)
 troopList = [0]*len(borderList)
 
-ownerList, troopList, turn = setupMap(ownerList, troopList)
+players = 6
+
+cardPile = [[None,0],[None,0],[None,0],[33, 2],[35, 3],[18, 1],[20, 1],[23, 3],[27, 1],[28, 3],[9, 2],[19, 1],[16, 2],[3, 2],[37, 2],[32, 3],[36, 2],[2, 3],[21, 2],[31, 3],[17, 1],[38, 1],[30, 3],[12, 1],[41, 2],[22, 1],[41, 3],[25, 2],[18, 1],[4, 3],[8, 1],[10, 1],[1, 2],[11, 2],[24, 3],[5, 3],[6, 3],[15, 1],[14, 1],[34, 2],[26, 1],[13, 2],[7, 3],[39, 2],[0, 3]]
+
+cardList = [[] for _ in range(players)]
+
+ownerList, troopList, turn = setupMap(ownerList, troopList, players)
+
+
+
+random.shuffle(cardPile)
+
+cardPile, cardList = dealCard(cardPile,cardList)
+cardPile, cardList = dealCard(cardPile,cardList)
+cardPile, cardList = dealCard(cardPile,cardList)
+cardPile, cardList = dealCard(cardPile,cardList)
+cardPile, cardList = dealCard(cardPile,cardList)
+
+tradeList = [0,1,2]
+
+bonusUnits, cardPile, cardList = tradeInCards(cardPile,cardList,tradeList)
+
 
 calcUnits(ownerList, continentList)
 

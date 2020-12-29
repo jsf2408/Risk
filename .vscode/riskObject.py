@@ -5,8 +5,14 @@ from graphviz import Graph
 
 class risk:
     def __init__(self, players=6):
+        print("RISK")
+
+        if players < 2 or players > 6:
+            players = 6
 
         self.players = players
+
+        self.continentBonus = [5,2,5,3,7,2]
 
         self.continentList = [[0,1,2,3,4,5,6,7,8], #north america
                         [9,10,11,12], #south america
@@ -29,42 +35,66 @@ class risk:
         #np.savetxt("borderMap",borderMap,fmt ='%.0f')
 
         self.ownerList = [None]*len(self.borderList)
-        self.troopList = [0]*len(self.borderList)
+        self.unitList = [0]*len(self.borderList)
 
-        self.cardPile = [[None,0],[None,0],[None,0],[33, 2],[35, 3],[18, 1],[20, 1],[23, 3],[27, 1],[28, 3],[9, 2],[19, 1],[16, 2],[3, 2],[37, 2],[32, 3],[36, 2],[2, 3],[21, 2],[31, 3],[17, 1],[38, 1],[30, 3],[12, 1],[41, 2],[22, 1],[41, 3],[25, 2],[18, 1],[4, 3],[8, 1],[10, 1],[1, 2],[11, 2],[24, 3],[5, 3],[6, 3],[15, 1],[14, 1],[34, 2],[26, 1],[13, 2],[7, 3],[39, 2],[0, 3]]
+        self.cardPile = [[None,0],[None,0],[33, 2],[35, 3],[18, 1],[20, 1],[23, 3],[27, 1],[28, 3],[9, 2],[19, 1],[16, 2],[3, 2],[37, 2],[32, 3],[36, 2],[2, 3],[21, 2],[31, 3],[17, 1],[38, 1],[30, 3],[12, 1],[41, 2],[22, 1],[41, 3],[25, 2],[18, 1],[4, 3],[8, 1],[10, 1],[1, 2],[11, 2],[24, 3],[5, 3],[6, 3],[15, 1],[14, 1],[34, 2],[26, 1],[13, 2],[7, 3],[39, 2],[0, 3]]
 
         random.shuffle(self.cardPile)
 
         self.cardList = [[] for _ in range(players)]
+
+        self.earnCard = False
+
+        self.tradeList = []
 
         self.playerTurn = 0
 
         self.setupMap()
 
     def setupMap(self):
-        troops = [25]*(self.players-1)
+        starterUnits = [40,35,30,25,20]
+
+        units = [starterUnits[self.players-2]]*(self.players)
         i = 0
+
         while None in self.ownerList:
-            #test = ownerList.index(-1)
             remainingCountries = [j for j, x in enumerate(self.ownerList) if x == None]
             selection = random.choice(remainingCountries)
             self.ownerList[selection] = self.playerTurn
-            self.troopList[selection] = 1
+            self.unitList[selection] = 1
             self.playerTurn = self.playerTurn+1
             if self.playerTurn > self.players-1:
                 self.playerTurn = 0
             i = i+1
 
-        for i in range(self.players-1):
-            for j in range(troops[i]):
+        for i in range(self.players):
+            for j in range(units[i]):
                 remainingCountries = [j for j, x in enumerate(self.ownerList) if x == i]
                 selection = random.choice(remainingCountries)
-                self.troopList[selection] = self.troopList[selection] + 1
+                self.unitList[selection] = self.unitList[selection] + 1
 
         self.createMap()
 
     def dealCard(self):
         self.cardList[self.playerTurn].append(self.cardPile.pop(0))
+
+    def tradeInCards(self):
+        bonusUnits = 0
+        bonusCountry = self.cardList[self.playerTurn][self.tradeList[0]][0]
+
+        unitValues = []
+        for i in self.tradeList:
+            unitValues.append(self.cardList[self.playerTurn][i][1])
+
+        unitValues = set(unitValues)
+        if unitValues == set(1,2,3):
+            bonusUnits = 10
+        elif unitValues == set(3,3,3): #set ignores duplicates
+            bonusUnits = 8
+        elif unitValues == set(2,2,2):
+            bonusUnits = 6
+        elif unitValues == set(1,1,1):
+            bonusUnits = 4
 
     def createMap(self):
         worldMap = Graph(graph_attr={'rankdir':'LR'})
@@ -85,10 +115,308 @@ class risk:
         for i in range(len(self.ownerList)):
             worldMap.node(str(i),style='filled',fillcolor=ownerColour[self.ownerList[i]])
 
-        for i in range(len(self.troopList)):
-            worldMap.node(str(i),label='< <b>      '+str(i)+'    </b> <br/>'+str(self.troopList[i])+'>')
+        for i in range(len(self.unitList)):
+            worldMap.node(str(i),label='< <b>      '+str(i)+'    </b> <br/>'+str(self.unitList[i])+'>')
 
         worldMap.save()
+    
+    def rollDice(self,attackerDiceNo=3,defenderDiceNo=2):
+        attackerDice = []
+        defenderDice = []
 
-game = risk()
-game.dealCard()
+        for i in range(attackerDiceNo):
+            attackerDice.append(random.randint(1,6))
+        attackerDice.sort(reverse=True)
+
+        for i in range(defenderDiceNo):
+            defenderDice.append(random.randint(1,6))
+        defenderDice.sort(reverse=True)
+
+        attackerLoss = 0
+        defenderLoss = 0
+        for i in range(min([len(attackerDice),len(defenderDice)])):
+            if defenderDice[i] >= attackerDice[i]:
+                attackerLoss = attackerLoss - 1
+            else:
+                defenderLoss = defenderLoss - 1
+        if attackerDiceNo == 3:
+            tabString = "\t"
+        else:
+            tabString = "\t\t"
+        if defenderDiceNo == 2:
+            tabString2 = "\t"
+        else:
+            tabString2 = "\t\t"
+        print(attackerDice,tabString,defenderDice,tabString2,attackerLoss,"\t",defenderLoss)
+        return attackerLoss, defenderLoss, attackerDiceNo
+
+    def calcUnits(self):
+        countryBonus = self.ownerList.count(self.playerTurn)//3
+        if countryBonus < 3:
+            countryBonus = 3
+        
+        continentCountryOwner = [[] for i in range(len(self.continentList))]
+
+        continentCountryOwner[0].append(1)
+
+        for i in range(len(self.continentList)):
+            for j in range(len(self.continentList[i])):
+                if self.ownerList[self.continentList[i][j]] == self.playerTurn:
+                    continentCountryOwner[i].append(1)
+                else:
+                    continentCountryOwner[i].append(0)
+
+        continentOwner = []
+
+        for i in range(len(self.continentBonus)):
+            continentOwner.append(min(continentCountryOwner[i]))
+
+        contBonus = []
+
+        for x, y in zip(continentOwner,self.continentBonus):
+            contBonus.append(x*y)
+
+        contBonus = sum(contBonus)
+
+        totalBonus = countryBonus+contBonus
+        return totalBonus
+
+    def pathCheck(self,targetCountry,seedCountry):
+        borderCountries = []
+        borderCountries.append(seedCountry)
+        newBorders = []
+        while True:
+            for z in borderCountries:
+                for i in self.borderList[z]:
+                    newBorders.append(i)
+
+            removeCountries = []
+            for i in newBorders:
+                if self.ownerList[i] != self.playerTurn:
+                    removeCountries.append(i)
+
+            for i in newBorders:
+                for j in borderCountries:
+                    if i==j:
+                        removeCountries.append(i)
+
+            for i in removeCountries:
+                while i in newBorders: 
+                    newBorders.remove(i)
+
+            newBorders = list(dict.fromkeys(newBorders))
+
+            if len(newBorders) > 0:
+                for i in newBorders:
+                    borderCountries.append(i)
+            else:
+                break
+
+        if targetCountry in borderCountries:
+            return True
+        else:
+            return False
+
+    def reinforce(self,targetCountry,seedCountry=-1,units=0):
+        if not seedCountry == -1:
+            self.unitList[seedCountry] = self.unitList[seedCountry]-units
+        self.unitList[targetCountry] = self.unitList[targetCountry]+units
+
+    def battle(self,attackerCountry,defenderCountry,style='blitz'):
+        if style == 'blitz':
+            while self.unitList[attackerCountry]>1 and self.unitList[defenderCountry]>0:
+                if self.unitList[attackerCountry]>3:
+                    attackerDiceNo = 3
+                else:
+                    attackerDiceNo = self.unitList[attackerCountry]-1
+
+                if self.unitList[defenderCountry]>1:
+                    defenderDiceNo = 2
+                else:
+                    defenderDiceNo = 1
+
+                attackerLoss, defenderLoss, attackerDiceNo = self.rollDice(attackerDiceNo,defenderDiceNo)
+
+                self.unitList[attackerCountry] = self.unitList[attackerCountry]+attackerLoss
+                self.unitList[defenderCountry] = self.unitList[defenderCountry]+defenderLoss
+        elif style == 'classic':
+            if self.unitList[attackerCountry]>3:
+                attackerDiceNo = 3
+            else:
+                attackerDiceNo = self.unitList[attackerCountry]-1
+
+            if self.unitList[defenderCountry]>1:
+                defenderDiceNo = 2
+            else:
+                defenderDiceNo = 1
+
+            attackerLoss, defenderLoss, attackerDiceNo = rollDice(attackerDiceNo,defenderDiceNo)
+
+            self.unitList[attackerCountry] = self.unitList[attackerCountry]+attackerLoss
+            self.unitList[defenderCountry] = self.unitList[defenderCountry]+defenderLoss
+        if self.unitList[defenderCountry]<=0:
+            print("Victory!")
+            victory = True
+            self.ownerList[defenderCountry]=self.ownerList[attackerCountry]
+            self.reinforce(defenderCountry,attackerCountry,attackerDiceNo)
+        else:
+            print('Defeat...')
+            victory = False
+        return victory
+
+    def draftPhase(self):
+        print("Starting draft phase...")
+        reinforcements = self.calcUnits()
+        while reinforcements > 0:
+            tradeEnd = "n"
+            while tradeEnd == "n" and self.cardList >= 3:
+                tradeOrder = input("Would you like to trade in cards? ")
+                if not (tradeOrder == "n" or tradeOrder == "y"): continue
+                if tradeOrder == "n":
+                    while True:
+                        tradeEnd = input("Are you sure? ")
+                        if (tradeEnd == "n" or attackEnd == "y"): break
+                    continue
+                while True:
+                    self.tradeList.append(input("Which card would you like to trade in? (Country bonus first) "))
+                    self.tradeList.append(input("Which card would you like to trade in? "))
+                    self.tradeList.append(input("Which card would you like to trade in? "))
+
+                    if len(self.tradelist)!=len(set(self.tradeList)) and max(self.tradeList)<=len(self.cardList[self.playerTurn]): break
+
+
+            print("You have "+str(reinforcements)+" units remaining.")
+            while True:
+                reinforceCountry = input("Which country would you like to reinforce? ")
+                try:
+                    reinforceCountry = int(reinforceCountry)
+                except:
+                    continue
+                if self.playerTurn == self.ownerList[reinforceCountry]: break
+            
+            while True:
+                reinforceUnit = input("How many units would you like to send? ")
+                try:
+                    reinforceUnit = int(reinforceUnit)
+                except:
+                    continue
+                if reinforceUnit <= reinforcements and reinforceUnit > 0: break
+            
+            self.reinforce(targetCountry=reinforceCountry, units=reinforceUnit)
+            reinforcements = reinforcements-reinforceUnit
+            self.createMap()
+        print("Ending draft phase...")
+
+    def attackPhase(self):
+        print("Starting attack phase...")
+        attackOrder = None
+        attackEnd = None
+        battleWon = False
+
+        while attackEnd != "y":
+            attackOrder = input("Would you like to attack a country? ")
+            if not (attackOrder == "n" or attackOrder == "y"): continue
+            if attackOrder == "n":
+                while True:
+                    attackEnd = input("Are you sure? ")
+                    if (attackEnd == "n" or attackEnd == "y"): break
+                continue
+            while True:
+                attackerCountry = input("Which country would you like to attack from? ")
+                try:
+                    attackerCountry = int(attackerCountry)
+                except:
+                    continue
+                if self.playerTurn == self.ownerList[attackerCountry] and self.unitList[attackerCountry]>1: break
+            while True:
+                defenderCountry = int(input("Which country would you like to attack? "))
+                try:
+                    defenderCountry = int(defenderCountry)
+                except:
+                    continue
+                if defenderCountry in self.borderList[attackerCountry] and self.ownerList[defenderCountry]!=self.ownerList[attackerCountry]: break
+            while True:
+                attackConfirmation = input("Confirm order?: "+str(attackerCountry)+"->"+str(defenderCountry)+" ")
+                if (attackConfirmation == "n" or attackConfirmation == "y"): break
+            if attackConfirmation == "y":
+                victory = self.battle(attackerCountry,defenderCountry)
+                self.createMap()
+                if victory:
+                    battleWon = True
+                    while True:
+                        reinforceUnits = input("How many additional units would you like to send? ")
+                        try:
+                            reinforceUnits = int(reinforceUnits)
+                        except:
+                            continue
+                        if reinforceUnits >= 0 and reinforceUnits < self.unitList[attackerCountry]: break
+                    self.reinforce(defenderCountry,attackerCountry,reinforceUnits)
+                    self.createMap()
+            continue
+        print("Ending attack phase...")
+        return self.ownerList, self.unitList
+
+    def fortifyPhase(self):
+        print("Starting fortify phase...")
+        fortifyEnd = None
+        while fortifyEnd != "y":
+            while True:
+                fortifyOrder = input("Would you like to fortify? ")
+                if (fortifyOrder == "n" or fortifyOrder == "y"): break
+            if fortifyOrder == "n":
+                while True:
+                    fortifyEnd = input("Are you sure? ")
+                    if (fortifyEnd == "n" or fortifyEnd == "y"): break
+                continue
+            while True:
+                baseCountry = input("Which country would you like to fortify from? ")
+                try:
+                    baseCountry = int(baseCountry)
+                except:
+                    continue
+                if self.playerTurn == self.ownerList[baseCountry] and self.unitList[baseCountry]>1: break
+            while True:
+                reinforceCountry = int(input("Which country would you like to fortify? "))
+                try:
+                    reinforceCountry = int(reinforceCountry)
+                except:
+                    continue
+                if self.ownerList[reinforceCountry] == self.playerTurn and self.pathCheck(reinforceCountry,baseCountry): break
+            while True:
+                reinforceunits = int(input("How many units would you like to move? "))
+                try:
+                    reinforceunits = int(reinforceunits)
+                except:
+                    continue
+                if reinforceunits < self.unitList[baseCountry] and reinforceunits > 0: break
+            while True:
+                fortifyEnd = input("Confirm order?: "+str(baseCountry)+"->"+str(reinforceunits)+"->"+str(reinforceCountry)+" ")
+                if (fortifyEnd == "n" or fortifyEnd == "y"): break
+            try:
+                self.reinforce(reinforceCountry,baseCountry,reinforceunits)
+            except:
+                continue
+        if self.earnCard == True:
+            self.dealCard()
+        self.earnCard = False
+        self.createMap()
+        print("Ending fortify phase...")
+
+    def playGame(self):
+        while not all(elem == self.ownerList[0] for elem in self.ownerList):
+            print('\nStarting player', self.playerTurn, 'turn...')
+            if self.playerTurn not in self.ownerList:
+                continue
+            self.draftPhase()
+            self.attackPhase()
+            self.fortifyPhase()
+            self.playerTurn = self.playerTurn+1
+            if self.playerTurn > self.players-1:
+                self.playerTurn = 0
+
+        print('Player', self.playerTurn, 'has won!')
+
+
+
+game = risk(2)
+game.playGame()

@@ -371,7 +371,7 @@ cardPile, cardList = dealCard(cardPile,cardList)
 
 tradeList = [0,1,2]
 
-bonusUnits, cardPile, cardList = tradeInCards(cardPile,cardList,tradeList)
+#bonusUnits, cardPile, cardList = tradeInCards(cardPile,cardList,tradeList)
 
 
 calcUnits(ownerList, continentList)
@@ -379,6 +379,8 @@ calcUnits(ownerList, continentList)
 ownerList, troopList = draftPhase(ownerList, troopList, continentList)
 ownerList, troopList = attackPhase(ownerList, troopList, borderList)
 ownerList, troopList = fortifyPhase(ownerList, troopList, borderList)    
+
+print(elem == ownerList[0] for elem in ownerList)
 
 while all(elem == ownerList[0] for elem in ownerList):
     if playerTurn not in ownerList:

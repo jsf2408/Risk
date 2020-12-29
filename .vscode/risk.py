@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from graphviz import Graph
 
 print("RISK")
 
@@ -59,9 +60,7 @@ def rollDice(attackerDiceNo=3,defenderDiceNo=2):
     return attackerLoss, defenderLoss, attackerDiceNo
 
 def createMap(continentList,borderList,ownerList,troopList):
-    from graphviz import Graph
-
-    worldMap = Graph(graph_attr={'rankdir':'LR'})
+    worldMap = Graph()#graph_attr={'rankdir':'LR'})
     for i in range(len(continentList)):
         with worldMap.subgraph(name='cluster'+str(i)) as c:
             for j in continentList[i]:
@@ -73,7 +72,6 @@ def createMap(continentList,borderList,ownerList,troopList):
             if str(j)+str(i) not in worldMapEdges:
                 worldMapEdges.append(str(i)+str(j))
                 worldMap.edge(str(i),str(j))
-    worldMap.save()  
 
     ownerColour = ['red','green','blue','purple','orange','yellow']
 
@@ -348,6 +346,8 @@ for i in range(len(borderList)):
 
 #np.savetxt("borderMap",borderMap,fmt ='%.0f')
 
+players = 6
+
 ownerList = [None]*len(borderList)
 troopList = [0]*len(borderList)
 
@@ -380,3 +380,14 @@ ownerList, troopList = draftPhase(ownerList, troopList, continentList)
 ownerList, troopList = attackPhase(ownerList, troopList, borderList)
 ownerList, troopList = fortifyPhase(ownerList, troopList, borderList)    
 
+while all(elem == ownerList[0] for elem in ownerList):
+    if playerTurn not in ownerList:
+        continue
+    ownerList, troopList = draftPhase(ownerList, troopList, continentList, playerTurn)
+    ownerList, troopList = attackPhase(ownerList, troopList, borderList, playerTurn)
+    ownerList, troopList = fortifyPhase(ownerList, troopList, borderList, playerTurn)
+    playerTurn = playerTurn+1
+    if playerTurn > players:
+        playerTurn = 0
+
+print('Player ', playerTurn, 'has won!')

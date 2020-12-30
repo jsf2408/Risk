@@ -5,7 +5,7 @@ from graphviz import Graph
 
 class risk:
     def __init__(self, players=6):
-        print("RISK")
+        print('RISK')
 
         if players < 2 or players > 6:
             players = 6
@@ -32,7 +32,7 @@ class risk:
             for j in self.borderList[i]:
                 self.borderMap[i,j]=1
 
-        #np.savetxt("borderMap",borderMap,fmt ='%.0f')
+        #np.savetxt('borderMap',borderMap,fmt ='%.0f')
 
         self.ownerList = [None]*len(self.borderList)
         self.unitList = [0]*len(self.borderList)
@@ -78,23 +78,37 @@ class risk:
     def dealCard(self):
         self.cardList[self.playerTurn].append(self.cardPile.pop(0))
 
-    def tradeInCards(self):
+    def tradeCards(self,tradeList):
         bonusUnits = 0
-        bonusCountry = self.cardList[self.playerTurn][self.tradeList[0]][0]
+        bonusCountry = self.cardList[self.playerTurn][tradeList[0]][0]
+        
+        if self.ownerList[bonusCountry] == self.playerTurn:
+            self.reinforce(targetCountry=bonusCountry, units=2)
+
 
         unitValues = []
-        for i in self.tradeList:
+        for i in tradeList:
             unitValues.append(self.cardList[self.playerTurn][i][1])
+            self.createMap()
 
-        unitValues = set(unitValues)
-        if unitValues == set(1,2,3):
+        tradeList.sort()
+
+        unitValues2 = set(unitValues.copy())
+        if unitValues2 == set([1,2,3]):
             bonusUnits = 10
-        elif unitValues == set(3,3,3): #set ignores duplicates
+        elif unitValues2 == set([3,3,3]): #set ignores duplicates
             bonusUnits = 8
-        elif unitValues == set(2,2,2):
+        elif unitValues2 == set([2,2,2]):
             bonusUnits = 6
-        elif unitValues == set(1,1,1):
+        elif unitValues2 == set([1,1,1]):
             bonusUnits = 4
+        
+        j = 0
+        for i in tradeList:
+            self.cardPile.append(self.cardList[self.playerTurn].pop(i-j))
+            j = j+1
+
+        return bonusUnits
 
     def createMap(self):
         worldMap = Graph(graph_attr={'rankdir':'LR'})
@@ -140,14 +154,14 @@ class risk:
             else:
                 defenderLoss = defenderLoss - 1
         if attackerDiceNo == 3:
-            tabString = "\t"
+            tabString = '\t'
         else:
-            tabString = "\t\t"
+            tabString = '\t\t'
         if defenderDiceNo == 2:
-            tabString2 = "\t"
+            tabString2 = '\t'
         else:
-            tabString2 = "\t\t"
-        print(attackerDice,tabString,defenderDice,tabString2,attackerLoss,"\t",defenderLoss)
+            tabString2 = '\t\t'
+        print(attackerDice,tabString,defenderDice,tabString2,attackerLoss,'\t',defenderLoss)
         return attackerLoss, defenderLoss, attackerDiceNo
 
     def calcUnits(self):
@@ -255,8 +269,9 @@ class risk:
             self.unitList[attackerCountry] = self.unitList[attackerCountry]+attackerLoss
             self.unitList[defenderCountry] = self.unitList[defenderCountry]+defenderLoss
         if self.unitList[defenderCountry]<=0:
-            print("Victory!")
+            print('Victory!')
             victory = True
+            self.earnCard = True
             self.ownerList[defenderCountry]=self.ownerList[attackerCountry]
             self.reinforce(defenderCountry,attackerCountry,attackerDiceNo)
         else:
@@ -265,29 +280,36 @@ class risk:
         return victory
 
     def draftPhase(self):
-        print("Starting draft phase...")
+        print('Starting draft phase...')
+        
         reinforcements = self.calcUnits()
-        while reinforcements > 0:
-            tradeEnd = "n"
-            while tradeEnd == "n" and self.cardList >= 3:
-                tradeOrder = input("Would you like to trade in cards? ")
-                if not (tradeOrder == "n" or tradeOrder == "y"): continue
-                if tradeOrder == "n":
-                    while True:
-                        tradeEnd = input("Are you sure? ")
-                        if (tradeEnd == "n" or attackEnd == "y"): break
-                    continue
+        tradeEnd = 'n'
+        tradeList = []
+        while tradeEnd == 'n' and len(self.cardList[self.playerTurn]) >= 3:
+            print('You have',reinforcements,'units.\n')
+            
+            print('Risk cards:',self.cardList[self.playerTurn],'\n')
+            tradeOrder = input('Would you like to trade in cards? ')
+            if not (tradeOrder == 'n' or tradeOrder == 'y'): continue
+            if tradeOrder == 'n':
                 while True:
-                    self.tradeList.append(input("Which card would you like to trade in? (Country bonus first) "))
-                    self.tradeList.append(input("Which card would you like to trade in? "))
-                    self.tradeList.append(input("Which card would you like to trade in? "))
-
-                    if len(self.tradelist)!=len(set(self.tradeList)) and max(self.tradeList)<=len(self.cardList[self.playerTurn]): break
-
-
-            print("You have "+str(reinforcements)+" units remaining.")
+                    tradeEnd = input('Are you sure? ')
+                    if (tradeEnd == 'n' or tradeEnd == 'y'): break
+                continue
             while True:
-                reinforceCountry = input("Which country would you like to reinforce? ")
+                tradeList.append(int(input('Which card would you like to trade in? (Country bonus first) ')))
+                tradeList.append(int(input('Which card would you like to trade in? ')))
+                tradeList.append(int(input('Which card would you like to trade in? ')))
+
+                if len(tradeList)==len(set(tradeList)) and max(tradeList)<=len(self.cardList[self.playerTurn]): 
+                    reinforcements = reinforcements + self.tradeCards(tradeList)
+                    break
+                tradeList = []
+        
+        while reinforcements > 0:
+            print('You have '+str(reinforcements)+' units remaining.')
+            while True:
+                reinforceCountry = input('Which country would you like to reinforce? ')
                 try:
                     reinforceCountry = int(reinforceCountry)
                 except:
@@ -295,7 +317,7 @@ class risk:
                 if self.playerTurn == self.ownerList[reinforceCountry]: break
             
             while True:
-                reinforceUnit = input("How many units would you like to send? ")
+                reinforceUnit = input('How many units would you like to send? ')
                 try:
                     reinforceUnit = int(reinforceUnit)
                 except:
@@ -305,46 +327,46 @@ class risk:
             self.reinforce(targetCountry=reinforceCountry, units=reinforceUnit)
             reinforcements = reinforcements-reinforceUnit
             self.createMap()
-        print("Ending draft phase...")
+        print('Ending draft phase...')
 
     def attackPhase(self):
-        print("Starting attack phase...")
+        print('Starting attack phase...')
         attackOrder = None
         attackEnd = None
         battleWon = False
 
-        while attackEnd != "y":
-            attackOrder = input("Would you like to attack a country? ")
-            if not (attackOrder == "n" or attackOrder == "y"): continue
-            if attackOrder == "n":
+        while attackEnd != 'y':
+            attackOrder = input('Would you like to attack a country? ')
+            if not (attackOrder == 'n' or attackOrder == 'y'): continue
+            if attackOrder == 'n':
                 while True:
-                    attackEnd = input("Are you sure? ")
-                    if (attackEnd == "n" or attackEnd == "y"): break
+                    attackEnd = input('Are you sure? ')
+                    if (attackEnd == 'n' or attackEnd == 'y'): break
                 continue
             while True:
-                attackerCountry = input("Which country would you like to attack from? ")
+                attackerCountry = input('Which country would you like to attack from? ')
                 try:
                     attackerCountry = int(attackerCountry)
                 except:
                     continue
                 if self.playerTurn == self.ownerList[attackerCountry] and self.unitList[attackerCountry]>1: break
             while True:
-                defenderCountry = int(input("Which country would you like to attack? "))
+                defenderCountry = int(input('Which country would you like to attack? '))
                 try:
                     defenderCountry = int(defenderCountry)
                 except:
                     continue
                 if defenderCountry in self.borderList[attackerCountry] and self.ownerList[defenderCountry]!=self.ownerList[attackerCountry]: break
             while True:
-                attackConfirmation = input("Confirm order?: "+str(attackerCountry)+"->"+str(defenderCountry)+" ")
-                if (attackConfirmation == "n" or attackConfirmation == "y"): break
-            if attackConfirmation == "y":
+                attackConfirmation = input('Confirm order?: '+str(attackerCountry)+'->'+str(defenderCountry)+' ')
+                if (attackConfirmation == 'n' or attackConfirmation == 'y'): break
+            if attackConfirmation == 'y':
                 victory = self.battle(attackerCountry,defenderCountry)
                 self.createMap()
                 if victory:
                     battleWon = True
                     while True:
-                        reinforceUnits = input("How many additional units would you like to send? ")
+                        reinforceUnits = input('How many additional units would you like to send? ')
                         try:
                             reinforceUnits = int(reinforceUnits)
                         except:
@@ -353,54 +375,55 @@ class risk:
                     self.reinforce(defenderCountry,attackerCountry,reinforceUnits)
                     self.createMap()
             continue
-        print("Ending attack phase...")
+        print('Ending attack phase...')
         return self.ownerList, self.unitList
 
     def fortifyPhase(self):
-        print("Starting fortify phase...")
+        print('Starting fortify phase...')
         fortifyEnd = None
-        while fortifyEnd != "y":
+        while fortifyEnd != 'y':
             while True:
-                fortifyOrder = input("Would you like to fortify? ")
-                if (fortifyOrder == "n" or fortifyOrder == "y"): break
-            if fortifyOrder == "n":
+                fortifyOrder = input('Would you like to fortify? ')
+                if (fortifyOrder == 'n' or fortifyOrder == 'y'): break
+            if fortifyOrder == 'n':
                 while True:
-                    fortifyEnd = input("Are you sure? ")
-                    if (fortifyEnd == "n" or fortifyEnd == "y"): break
+                    fortifyEnd = input('Are you sure? ')
+                    if (fortifyEnd == 'n' or fortifyEnd == 'y'): break
                 continue
             while True:
-                baseCountry = input("Which country would you like to fortify from? ")
+                baseCountry = input('Which country would you like to fortify from? ')
                 try:
                     baseCountry = int(baseCountry)
                 except:
                     continue
                 if self.playerTurn == self.ownerList[baseCountry] and self.unitList[baseCountry]>1: break
             while True:
-                reinforceCountry = int(input("Which country would you like to fortify? "))
+                reinforceCountry = int(input('Which country would you like to fortify? '))
                 try:
                     reinforceCountry = int(reinforceCountry)
                 except:
                     continue
                 if self.ownerList[reinforceCountry] == self.playerTurn and self.pathCheck(reinforceCountry,baseCountry): break
             while True:
-                reinforceunits = int(input("How many units would you like to move? "))
+                reinforceunits = int(input('How many units would you like to move? '))
                 try:
                     reinforceunits = int(reinforceunits)
                 except:
                     continue
                 if reinforceunits < self.unitList[baseCountry] and reinforceunits > 0: break
             while True:
-                fortifyEnd = input("Confirm order?: "+str(baseCountry)+"->"+str(reinforceunits)+"->"+str(reinforceCountry)+" ")
-                if (fortifyEnd == "n" or fortifyEnd == "y"): break
+                fortifyEnd = input('Confirm order?: '+str(baseCountry)+'->'+str(reinforceunits)+'->'+str(reinforceCountry)+' ')
+                if (fortifyEnd == 'n' or fortifyEnd == 'y'): break
             try:
                 self.reinforce(reinforceCountry,baseCountry,reinforceunits)
             except:
                 continue
         if self.earnCard == True:
+            print('Dealing card...')
             self.dealCard()
         self.earnCard = False
         self.createMap()
-        print("Ending fortify phase...")
+        print('Ending fortify phase...')
 
     def playGame(self):
         while not all(elem == self.ownerList[0] for elem in self.ownerList):
@@ -419,4 +442,7 @@ class risk:
 
 
 game = risk(2)
+game.dealCard()
+game.dealCard()
+game.dealCard()
 game.playGame()
